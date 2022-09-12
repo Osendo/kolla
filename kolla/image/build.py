@@ -101,6 +101,38 @@ UNBUILDABLE_IMAGES = {
     'source': {
     },
 
+    'ppc64le': {
+        "elasticsearch",     # no binary package
+        "grafana",           # no binary package
+        "monasca-grafana",   # no phantomJS
+        "prometheus-base",   # no ppc64le binaries
+        "skydive-base",      # no ppc64le binaries
+        "telegraf",          # no binary package
+        "xtrabackup",        # no binary package
+    },
+
+    'source+ppc64le': {
+        "monasca-base",  # pypi 'confluent-kafka' requires newer libfdkafka-dev
+                         # than distributions have
+        "tempest",       # same reason as 'monasca-base'
+    },
+
+    'ppc64le': {
+        "elasticsearch",     # no binary package
+        "grafana",           # no binary package
+        "monasca-grafana",   # no phantomJS
+        "prometheus-base",   # no ppc64le binaries
+        "skydive-base",      # no ppc64le binaries
+        "telegraf",          # no binary package
+        "xtrabackup",        # no binary package
+    },
+
+    'source+ppc64le': {
+        "monasca-base",  # pypi 'confluent-kafka' requires newer libfdkafka-dev
+                         # than distributions have
+        "tempest",       # same reason as 'monasca-base'
+    },
+
     'centos': {
         "hacluster-pcs",         # Missing crmsh package
         "nova-spicehtml5proxy",  # Missing spicehtml5 package
@@ -142,6 +174,62 @@ UNBUILDABLE_IMAGES = {
 
     'ubuntu+binary': {
         "cloudkitty-base",  # no binary packages in UCA
+        "senlin-conductor",  # no binary package
+        "senlin-health-manager",  # no binary package
+        "tacker-base",
+        "vitrage-base",
+        "neutron-mlnx-agent",
+    },
+
+    'centos+ppc64le': {
+        "hacluster-pcs",  # no binary package
+        "influxdb",       # no binary package
+        "kibana",         # no binary package
+    },
+
+    "centos+binary": {
+        "masakari-base",
+    },
+
+    'debian+binary': {
+        "cloudkitty-base",       # no support in Dockerfile
+        "ironic-neutron-agent",  # no support in Dockerfile
+        "nova-serialproxy",      # no binary package
+        "tacker-base",           # no binary package
+    },
+
+    'ubuntu+binary': {
+        "cloudkitty-base",
+        "ironic-neutron-agent",
+        "rally",
+        "senlin-conductor",  # no binary package
+        "senlin-health-manager",  # no binary package
+        "tacker-base",
+        "vitrage-base",
+        "neutron-mlnx-agent",
+    },
+
+    'centos+ppc64le': {
+        "hacluster-pcs",  # no binary package
+        "influxdb",       # no binary package
+        "kibana",         # no binary package
+    },
+
+    "centos+binary": {
+        "masakari-base",
+    },
+
+    'debian+binary': {
+        "cloudkitty-base",       # no support in Dockerfile
+        "ironic-neutron-agent",  # no support in Dockerfile
+        "nova-serialproxy",      # no binary package
+        "tacker-base",           # no binary package
+    },
+
+    'ubuntu+binary': {
+        "cloudkitty-base",
+        "ironic-neutron-agent",
+        "rally",
         "senlin-conductor",  # no binary package
         "senlin-health-manager",  # no binary package
         "tacker-base",
@@ -668,6 +756,8 @@ class KollaWorker(object):
             self.debian_arch = 'arm64'
         elif self.base_arch == 'x86_64':
             self.debian_arch = 'amd64'
+        elif self.base_arch == 'ppc64le':
+            self.debian_arch = 'ppc64el'
         self.images = list()
         self.openstack_release = conf.openstack_release
         self.openstack_branch = conf.openstack_branch

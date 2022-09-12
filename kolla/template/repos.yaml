@@ -40,6 +40,20 @@ centos-aarch64:
   rabbitmq: "rabbitmq_rabbitmq-server"
   td-agent: "treasuredata"
 
+centos-ppc64le:
+  ceph: "centos-ceph-nautilus"
+  elasticsearch: "elasticsearch-kibana-logstash-7.x"
+  epel: "epel"
+  epel-modular: "epel-modular"
+  extras: "extras"
+  hacluster: "ha"
+  libvirt: "centos-advanced-virtualization"
+  logstash: "elasticsearch-kibana-logstash-7.x"
+  openvswitch: "centos-nfv-openvswitch"
+  opstools: "centos-opstools"
+  powertools: "powertools"
+  rabbitmq: "rabbitmq_rabbitmq-server"
+
 debian:
   elasticsearch:
     url: "https://artifacts.elastic.co/packages/oss-7.x/apt"
@@ -252,3 +266,15 @@ ubuntu-aarch64:
     suite: "./"
     component: ""
     gpg_key: "proxysql.asc"
+
+ubuntu-ppc64le:
+  mariadb:
+    url: "deb http://downloads.mariadb.com/MariaDB/mariadb-10.3/repo/ubuntu"
+    suite: "jammy"
+    component: "main"
+    gpg_key: "mariadb.asc"
+  rabbitmq:
+    url: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/"
+    suite: "jammy"
+    component: "main"
+    gpg_key: "rabbitmq.asc"

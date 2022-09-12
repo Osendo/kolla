@@ -20,7 +20,7 @@ from kolla.version import version_info as version
 
 
 BASE_OS_DISTRO = ['centos', 'debian', 'ubuntu']
-BASE_ARCH = ['x86_64', 'aarch64']
+BASE_ARCH = ['x86_64', 'ppc64le', 'aarch64']
 DEFAULT_BASE_TAGS = {
     'centos': {'name': 'quay.io/centos/centos', 'tag': 'stream8'},
     'debian': {'name': 'debian', 'tag': 'bullseye'},
@@ -120,6 +120,7 @@ _PROFILE_OPTS = [
                 help='Aux Images'),
     cfg.ListOpt('default',
                 default=[
+                    'chrony',
                     'cron',
                     'kolla-toolbox',
                     'fluentd',

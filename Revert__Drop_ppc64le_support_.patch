@@ -1,0 +1,376 @@
+Index: doc/source/contributor/adding-a-new-image.rst
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/doc/source/contributor/adding-a-new-image.rst b/doc/source/contributor/adding-a-new-image.rst
+--- a/doc/source/contributor/adding-a-new-image.rst	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/doc/source/contributor/adding-a-new-image.rst	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -40,6 +40,10 @@
+ 
+    {% import "macros.j2" as macros with context %}
+ 
++   << binary specific steps >>
++
++   << source specific steps >>
++
+    << common steps >>
+ 
+    {% block << service >>_footer %}{% endblock %}
+@@ -73,6 +77,15 @@
+            "bifrost-base",      # someone need to get upstream working first
+        },
+ 
++       'ppc64le': {
++           "elasticsearch",     # no binary package
++       },
++
++       'binary': {
++           "bifrost-base",
++           "blazar-base",
++       },
++
+        'centos': {
+            "hacluster-pcs",         # Missing crmsh package
+        },
+Index: doc/source/support_matrix.rst
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/doc/source/support_matrix.rst b/doc/source/support_matrix.rst
+--- a/doc/source/support_matrix.rst	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/doc/source/support_matrix.rst	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -73,6 +73,11 @@
+    :stub-columns: 1
+    :file: ./matrix_aarch64.csv
+ 
++ppc64le images
++==============
++
++.. note:: TODO
++
+ .. _unbuildable-images-list:
+ 
+ Currently unbuildable images
+Index: docker/base/Dockerfile.j2
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docker/base/Dockerfile.j2 b/docker/base/Dockerfile.j2
+--- a/docker/base/Dockerfile.j2	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/docker/base/Dockerfile.j2	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -109,6 +109,16 @@
+ COPY {{ repo_file }} /etc/yum.repos.d/{{ repo_file }}
+ {%- endfor %}
+ 
++# NOTE(hrw): 'rabbitmq-server' is 'noarch' so we can install it on ppc64le from
++# repo for other architecture.
++# NOTE(mjturek): tripleo-ci overrides these repos so the file would not exist
++# in that case. We test for the file's existence to avoid sed failing in that case.
++{% if base_arch == 'ppc64le' %}
++RUN if [[ -e /etc/yum.repos.d/rabbitmq_rabbitmq-server.repo ]]; then \
++      sed -i -e 's/\$basearch/x86_64/g' /etc/yum.repos.d/rabbitmq_rabbitmq-server.repo; \
++    fi
++{% endif %}
++
+ {% block base_centos_repo_overrides_post_copy %}{% endblock %}
+ 
+ # Install what is needed for en_US.UTF-8
+Index: docker/base/sources.list.ubuntu.ppc64le
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docker/base/sources.list.ubuntu.ppc64le b/docker/base/sources.list.ubuntu.ppc64le
+new file mode 100644
+--- /dev/null	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
++++ b/docker/base/sources.list.ubuntu.ppc64le	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -0,0 +1,23 @@
++# Default repos
++deb http://ports.ubuntu.com/ focal main universe
++deb http://ports.ubuntu.com/ focal-updates main universe
++deb http://ports.ubuntu.com/ focal-security main universe
++
++# Backports have a lower priority and must be explicitly installed to be used
++deb http://ports.ubuntu.com/ focal-backports main universe
++
++# We need to add the repo for the updated packages they provide. The main ones
++# are qemu, libvirt, and openvswitch.
++deb http://ubuntu-cloud.archive.canonical.com/ubuntu focal-updates/wallaby main
++
++# NOTE(hrw): repositories below are added into image when they are needed as
++# separate files in /etc/apt/sources.list.d/ directory. For that purpose they
++# are defined in kolla/repos.yaml file.
++#
++# Here they stay in case someone needs them.
++
++# rabbitmq repo
++#deb https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main
++
++# MariaDB repo
++#deb http://downloads.mariadb.com/MariaDB/mariadb-10.3/repo/ubuntu focal main
+Index: docker/collectd/Dockerfile.j2
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docker/collectd/Dockerfile.j2 b/docker/collectd/Dockerfile.j2
+--- a/docker/collectd/Dockerfile.j2	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/docker/collectd/Dockerfile.j2	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -56,16 +56,27 @@
+       'collectd-write_prometheus',
+   ] %}
+ 
++  {% if base_arch in ['x86_64', 'ppc64le'] %}
++      {% set collectd_packages = collectd_packages + [
++        'collectd-iptables'
++        ] %}
++  {% endif %}
++
+   {% if base_arch =='x86_64' %}
+       {% set collectd_packages = collectd_packages + [
+         'collectd-hugepages',
+         'collectd-iptables',
+-        'collectd-pcie-errors',
+         'collectd-pmu',
+         'collectd-rdt',
+         'collectd-turbostat'
+       ] %}
+   {% endif %}
++
++  {% if base_arch != 's390x' %}
++      {% set collectd_packages = collectd_packages + [
++        'collectd-pcie-errors'
++      ] %}
++  {% endif %}
+ 
+ {% endif %}
+ 
+Index: docker/ironic/ironic-pxe/Dockerfile.j2
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docker/ironic/ironic-pxe/Dockerfile.j2 b/docker/ironic/ironic-pxe/Dockerfile.j2
+--- a/docker/ironic/ironic-pxe/Dockerfile.j2	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/docker/ironic/ironic-pxe/Dockerfile.j2	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -17,11 +17,21 @@
+         'tftp-server',
+     ] %}
+ 
+-    {% if base_arch in ['x86_64'] %}
++    {% if base_arch in ['x86_64', 'ppc64le'] %}
+         {% set ironic_pxe_packages = ironic_pxe_packages + [
+             'syslinux-tftpboot'
+         ] %}
+     {% endif %}
++
++    # NOTE(hrw): RHEL and CentOS ship those packages on all grub architectures
++    # (x86_64, ppc64le, aarch64, but not s390x), and therefore can be used on
++    # any of them to support heterogeneous clusters with AArch64.
++    {% if base_arch != 's390x' %}
++        {% set ironic_pxe_packages = ironic_pxe_packages + [
++            'grub2-tools',
++            'grub2-efi-aa64-modules'
++        ] %}
++    {% endif %}
+ 
+ {{ macros.install_packages(ironic_pxe_packages | customizable("packages")) }}
+ {% elif base_package_type == 'deb' %}
+Index: docker/nova/nova-base/Dockerfile.j2
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docker/nova/nova-base/Dockerfile.j2 b/docker/nova/nova-base/Dockerfile.j2
+--- a/docker/nova/nova-base/Dockerfile.j2	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/docker/nova/nova-base/Dockerfile.j2	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -47,7 +47,9 @@
+             'qemu-efi',
+         ] %}
+     {% endif %}
+-
++    {% elif base_arch == 'ppc64le' %}
++        {# NOTE(Jeffrey4l): no packages for ppc64le #}
++    {% endif %}
+ {% endif %}
+ 
+ {{ macros.install_packages(nova_base_packages | customizable("packages")) }}
+Index: kolla/common/config.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/kolla/common/config.py b/kolla/common/config.py
+--- a/kolla/common/config.py	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/kolla/common/config.py	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -22,7 +22,7 @@
+ 
+ 
+ BASE_OS_DISTRO = ['centos', 'debian', 'ubuntu']
+-BASE_ARCH = ['x86_64', 'aarch64']
++BASE_ARCH = ['x86_64', 'ppc64le', 'aarch64']
+ DEFAULT_BASE_TAGS = {
+     'centos': {'name': 'quay.io/centos/centos', 'tag': 'stream8'},
+     'debian': {'name': 'debian', 'tag': 'bullseye'},
+@@ -121,6 +121,7 @@
+                 help='Aux Images'),
+     cfg.ListOpt('default',
+                 default=[
++                    'chrony',
+                     'cron',
+                     'kolla-toolbox',
+                     'fluentd',
+Index: kolla/image/build.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/kolla/image/build.py b/kolla/image/build.py
+--- a/kolla/image/build.py	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/kolla/image/build.py	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -28,6 +28,7 @@
+ import threading
+ import time
+ 
++from distutils.version import StrictVersion
+ import docker
+ from enum import Enum
+ import git
+@@ -87,6 +88,22 @@
+         "skydive-base",      # no aarch64 binary
+     },
+ 
++    'ppc64le': {
++        "elasticsearch",     # no binary package
++        "grafana",           # no binary package
++        "monasca-grafana",   # no phantomJS
++        "prometheus-base",   # no ppc64le binaries
++        "skydive-base",      # no ppc64le binaries
++        "telegraf",          # no binary package
++        "xtrabackup",        # no binary package
++    },
++
++    'source+ppc64le': {
++        "monasca-base",  # pypi 'confluent-kafka' requires newer libfdkafka-dev
++                         # than distributions have
++        "tempest",       # same reason as 'monasca-base'
++    },
++
+     'centos': {
+         "hacluster-pcs",         # Missing crmsh package
+         "nova-spicehtml5proxy",  # Missing spicehtml5 package
+@@ -95,6 +112,11 @@
+     },
+ 
+     'debian': {
++        "bifrost-base",  # tries to install 'mysql-server' which is not in
++                         # Debian 'buster'
++        "monasca-grafana",  # FIXME(hrw): some ssl issues to fix
++        "ovn-base",      # needs more checking
++        "qdrouterd",
+     },
+ 
+     'ubuntu': {
+@@ -113,6 +135,34 @@
+         "kibana",         # no binary package
+         "telegraf",       # no binary package
+     },
++
++    'centos+ppc64le': {
++        "hacluster-pcs",  # no binary package
++        "influxdb",       # no binary package
++        "kibana",         # no binary package
++    },
++
++    "centos+binary": {
++        "masakari-base",
++    },
++
++    'debian+binary': {
++        "cloudkitty-base",       # no support in Dockerfile
++        "ironic-neutron-agent",  # no support in Dockerfile
++        "nova-serialproxy",      # no binary package
++        "tacker-base",           # no binary package
++    },
++
++    'ubuntu+binary': {
++        "cloudkitty-base",
++        "ironic-neutron-agent",
++        "rally",
++        "senlin-conductor",  # no binary package
++        "senlin-health-manager",  # no binary package
++        "tacker-base",
++        "vitrage-base",
++        "neutron-mlnx-agent",
++    },
+ }
+ 
+ 
+@@ -614,6 +664,8 @@
+             self.debian_arch = 'arm64'
+         elif self.base_arch == 'x86_64':
+             self.debian_arch = 'amd64'
++        elif self.base_arch == 'ppc64le':
++            self.debian_arch = 'ppc64el'
+         self.images = list()
+         self.openstack_release = conf.openstack_release
+         self.openstack_branch = conf.openstack_branch
+Index: kolla/template/repos.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/kolla/template/repos.yaml b/kolla/template/repos.yaml
+--- a/kolla/template/repos.yaml	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ b/kolla/template/repos.yaml	(revision 287a8be4f9d303ca65505d95d5d8c239492ab6b1)
+@@ -40,6 +40,20 @@
+   rabbitmq: "rabbitmq_rabbitmq-server"
+   td-agent: "treasuredata"
+ 
++centos-ppc64le:
++  ceph: "centos-ceph-nautilus"
++  elasticsearch: "elasticsearch-kibana-logstash-7.x"
++  epel: "epel"
++  epel-modular: "epel-modular"
++  extras: "extras"
++  hacluster: "ha"
++  libvirt: "centos-advanced-virtualization"
++  logstash: "elasticsearch-kibana-logstash-7.x"
++  openvswitch: "centos-nfv-openvswitch"
++  opstools: "centos-opstools"
++  powertools: "powertools"
++  rabbitmq: "rabbitmq_rabbitmq-server"
++
+ debian:
+   elasticsearch:
+     url: "https://artifacts.elastic.co/packages/oss-7.x/apt"
+@@ -242,3 +256,15 @@
+     suite: "./"
+     component: ""
+     gpg_key: "proxysql.asc"
++
++ubuntu-ppc64le:
++  mariadb:
++    url: "deb http://downloads.mariadb.com/MariaDB/mariadb-10.3/repo/ubuntu"
++    suite: "jammy"
++    component: "main"
++    gpg_key: "mariadb.asc"
++  rabbitmq:
++    url: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/"
++    suite: "jammy"
++    component: "main"
++    gpg_key: "rabbitmq.asc"
+Index: releasenotes/notes/drop-ppc64le-516442a16cc9f27c.yaml
+===================================================================
+diff --git a/releasenotes/notes/drop-ppc64le-516442a16cc9f27c.yaml b/releasenotes/notes/drop-ppc64le-516442a16cc9f27c.yaml
+deleted file mode 100644
+--- a/releasenotes/notes/drop-ppc64le-516442a16cc9f27c.yaml	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
++++ /dev/null	(revision 0d4e8e6c11947e07953121d6009809db69f4965b)
+@@ -1,4 +0,0 @@
+----
+-upgrade:
+-  - |
+-    Support for building containers for ppc64le architecture was dropped.

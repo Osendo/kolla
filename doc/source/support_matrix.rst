@@ -73,6 +73,11 @@ aarch64 images
    :stub-columns: 1
    :file: ./matrix_aarch64.csv
 
+ppc64le images
+==============
+
+.. note:: TODO
+
 .. _unbuildable-images-list:
 
 Currently unbuildable images
